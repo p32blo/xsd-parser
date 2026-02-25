@@ -276,7 +276,9 @@ impl ConstrainsData<'_> {
                 return None;
             }
 
-            let check = if *x == 1 {
+            let check = if self.meta.is_hex_binary {
+                quote!(value.len() < #x * 2)
+            } else if *x == 1 {
                 quote!(value.is_empty())
             } else {
                 quote!(value.len() < #x)
@@ -295,7 +297,9 @@ impl ConstrainsData<'_> {
 
     fn render_validate_max_length(&self, ctx: &Context<'_, '_>) -> Option<TokenStream> {
         self.meta.max_length.as_ref().map(|x| {
-            let check = if *x == 0 {
+            let check = if self.meta.is_hex_binary {
+                quote!(value.len() > #x * 2)
+            } else if *x == 0 {
                 quote!(!value.is_empty())
             } else {
                 quote!(value.len() > #x)

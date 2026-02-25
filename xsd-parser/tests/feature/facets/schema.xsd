@@ -29,12 +29,19 @@
         </xs:restriction>
     </xs:simpleType>
 
+    <xs:simpleType name="NonceType">
+        <xs:restriction base="xs:hexBinary">
+            <xs:length value="16"/>
+        </xs:restriction>
+    </xs:simpleType>
+
     <xs:element name="Root">
         <xs:complexType>
             <xs:choice minOccurs="0" maxOccurs="unbounded">
-                <xs:element name="NegativeDecimal" type="tns:NegativeDecimal" />
-                <xs:element name="PositiveDecimal" type="tns:PositiveDecimal" />
-                <xs:element name="RestrictedString" type="tns:RestrictedString" />
+                <xs:element name="NegativeDecimal" type="tns:NegativeDecimal"/>
+                <xs:element name="PositiveDecimal" type="tns:PositiveDecimal"/>
+                <xs:element name="RestrictedString" type="tns:RestrictedString"/>
+                <xs:element name="NonceType" type="tns:NonceType"/>
             </xs:choice>
         </xs:complexType>
     </xs:element>
