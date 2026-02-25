@@ -58,6 +58,9 @@ pub struct Constrains {
 
     /// Defines the whitespace handling.
     pub whitespace: WhiteSpace,
+
+    /// Indicates if the value is a hexadecimal binary.
+    pub is_hex_binary: bool,
 }
 
 impl Default for Constrains {
@@ -73,6 +76,7 @@ impl Default for Constrains {
             min_length: None,
             max_length: None,
             whitespace: WhiteSpace::default(),
+            is_hex_binary: false,
         }
     }
 }

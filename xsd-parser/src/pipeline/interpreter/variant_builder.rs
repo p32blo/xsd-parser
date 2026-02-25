@@ -350,12 +350,14 @@ impl<'a, 'schema, 'state> VariantBuilder<'a, 'schema, 'state> {
     fn apply_simple_type_restriction(&mut self, ty: &'schema Restriction) -> Result<(), Error> {
         use crate::models::schema::xs::RestrictionContent as C;
 
+        let mut is_hex_binary = false;
         let base = ty
             .base
             .as_ref()
             .map(|base| {
                 let base = self.parse_qname(base)?;
 
+                is_hex_binary = ["hexBinary", "base64Binary"].contains(&base.name.as_str());
                 self.copy_base_type(&base, UpdateMode::Restriction)?;
 
                 Ok(base)
@@ -366,7 +368,7 @@ impl<'a, 'schema, 'state> VariantBuilder<'a, 'schema, 'state> {
             match c {
                 C::Annotation(x) => self.apply_annotation(x),
                 C::SimpleType(x) => self.apply_simple_type(x)?,
-                C::Facet(x) => self.apply_facet(x)?,
+                C::Facet(x) => self.apply_facet(x, is_hex_binary)?,
             }
         }
 
@@ -581,6 +583,9 @@ impl<'a, 'schema, 'state> VariantBuilder<'a, 'schema, 'state> {
     fn apply_restriction(&mut self, ty: &'schema RestrictionType) -> Result<(), Error> {
         use crate::models::schema::xs::RestrictionTypeContent as C;
 
+        let base = self.parse_qname(&ty.base)?;
+        let is_hex_binary = ["hexBinary", "base64Binary"].contains(&base.name.as_str());
+
         for c in &ty.content {
             match c {
                 C::OpenContent(_) | C::Assert(_) => (),
@@ -591,7 +596,7 @@ impl<'a, 'schema, 'state> VariantBuilder<'a, 'schema, 'state> {
                 C::Attribute(x) => self.apply_attribute_ref(x)?,
                 C::AnyAttribute(x) => self.apply_any_attribute(x)?,
                 C::AttributeGroup(x) => self.apply_attribute_group_ref(x)?,
-                C::Facet(x) => self.apply_facet(x)?,
+                C::Facet(x) => self.apply_facet(x, is_hex_binary)?,
                 C::Group(x) => self.apply_group_ref(x)?,
                 C::SimpleType(x) => self.apply_simple_type(x)?,
             }
@@ -1009,7 +1014,7 @@ impl<'a, 'schema, 'state> VariantBuilder<'a, 'schema, 'state> {
     }
 
     #[instrument(err, level = "trace", skip(self))]
-    fn apply_facet(&mut self, ty: &Facet) -> Result<(), Error> {
+    fn apply_facet(&mut self, ty: &Facet, is_hex_binary: bool) -> Result<(), Error> {
         match ty {
             Facet::Enumeration(x) => self.apply_enumeration(x)?,
             x @ (Facet::MinExclusive(_)
@@ -1022,7 +1027,7 @@ impl<'a, 'schema, 'state> VariantBuilder<'a, 'schema, 'state> {
             | Facet::MinLength(_)
             | Facet::MaxLength(_)
             | Facet::WhiteSpace(_)
-            | Facet::Pattern(_)) => self.apply_simple_type_facet(x)?,
+            | Facet::Pattern(_)) => self.apply_simple_type_facet(x, is_hex_binary)?,
             x => tracing::warn!("Unknown facet: {x:#?}"),
         }
 
@@ -1030,7 +1035,7 @@ impl<'a, 'schema, 'state> VariantBuilder<'a, 'schema, 'state> {
     }
 
     #[instrument(err, level = "trace", skip(self))]
-    fn apply_simple_type_facet(&mut self, ty: &Facet) -> Result<(), Error> {
+    fn apply_simple_type_facet(&mut self, ty: &Facet, is_hex_binary: bool) -> Result<(), Error> {
         self.simple_content_builder(|builder| {
             let constrains = match &mut builder.variant {
                 Some(MetaTypeVariant::SimpleType(x)) => &mut x.constrains,
@@ -1113,6 +1118,10 @@ impl<'a, 'schema, 'state> VariantBuilder<'a, 'schema, 'state> {
                 }
                 Facet::Pattern(x) => constrains.patterns.push(x.value.clone()),
                 _ => crate::unreachable!("Not a valid facet for a simple type!"),
+            }
+
+            if is_hex_binary {
+                constrains.is_hex_binary = true;
             }
 
             Ok(())

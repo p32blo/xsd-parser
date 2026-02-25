@@ -17,6 +17,8 @@ pub enum RootTypeContent {
     PositiveDecimal(PositiveDecimalType),
     #[serde(rename = "RestrictedString")]
     RestrictedString(RestrictedStringType),
+    #[serde(rename = "NonceType")]
+    NonceType(NonceType),
 }
 #[derive(Debug, Deserialize, Serialize)]
 pub struct NegativeDecimalType(pub f64);
@@ -149,6 +151,44 @@ impl TryFrom<String> for RestrictedStringType {
     }
 }
 impl Deref for RestrictedStringType {
+    type Target = String;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+#[derive(Debug, Deserialize, Serialize)]
+pub struct NonceType(pub String);
+impl NonceType {
+    pub fn new(inner: String) -> Result<Self, ValidateError> {
+        Self::validate_value(&inner)?;
+        Ok(Self(inner))
+    }
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+    pub fn validate_value(value: &String) -> Result<(), ValidateError> {
+        if value.len() < 16usize * 2 {
+            return Err(ValidateError::MinLength(16usize));
+        }
+        if value.len() > 16usize * 2 {
+            return Err(ValidateError::MaxLength(16usize));
+        }
+        Ok(())
+    }
+}
+impl From<NonceType> for String {
+    fn from(value: NonceType) -> String {
+        value.0
+    }
+}
+impl TryFrom<String> for NonceType {
+    type Error = ValidateError;
+    fn try_from(value: String) -> Result<Self, ValidateError> {
+        Self::new(value)
+    }
+}
+impl Deref for NonceType {
     type Target = String;
     fn deref(&self) -> &Self::Target {
         &self.0

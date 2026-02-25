@@ -2,4 +2,5 @@
     <NegativeDecimal>-1234.56</NegativeDecimal>
     <PositiveDecimal>0.01</PositiveDecimal>
     <RestrictedString>Abcdef</RestrictedString>
+    <NonceType>a1f3e8b2c9d4f6e7a2b3c4d5e6f7a8b9</NonceType>
 </Values>

@@ -24,6 +24,7 @@ pub enum RootTypeContent {
     NegativeDecimal(NegativeDecimalType),
     PositiveDecimal(PositiveDecimalType),
     RestrictedString(RestrictedStringType),
+    NonceType(NonceType),
 }
 impl WithSerializer for RootType {
     type Serializer<'x> = quick_xml_serialize::RootTypeSerializer<'x>;
@@ -240,6 +241,55 @@ impl DeserializeBytes for RestrictedStringType {
         Ok(Self::new(inner).map_err(|error| (bytes, error))?)
     }
 }
+#[derive(Debug)]
+pub struct NonceType(pub String);
+impl NonceType {
+    pub fn new(inner: String) -> Result<Self, ValidateError> {
+        Self::validate_value(&inner)?;
+        Ok(Self(inner))
+    }
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+    pub fn validate_value(value: &String) -> Result<(), ValidateError> {
+        if value.len() < 16usize * 2 {
+            return Err(ValidateError::MinLength(16usize));
+        }
+        if value.len() > 16usize * 2 {
+            return Err(ValidateError::MaxLength(16usize));
+        }
+        Ok(())
+    }
+}
+impl From<NonceType> for String {
+    fn from(value: NonceType) -> String {
+        value.0
+    }
+}
+impl TryFrom<String> for NonceType {
+    type Error = ValidateError;
+    fn try_from(value: String) -> Result<Self, ValidateError> {
+        Self::new(value)
+    }
+}
+impl Deref for NonceType {
+    type Target = String;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl SerializeBytes for NonceType {
+    fn serialize_bytes(&self, helper: &mut SerializeHelper) -> Result<Option<Cow<'_, str>>, Error> {
+        self.0.serialize_bytes(helper)
+    }
+}
+impl DeserializeBytes for NonceType {
+    fn deserialize_bytes(helper: &mut DeserializeHelper, bytes: &[u8]) -> Result<Self, Error> {
+        let inner = String::deserialize_bytes(helper, bytes)?;
+        Ok(Self::new(inner).map_err(|error| (bytes, error))?)
+    }
+}
 pub mod quick_xml_deserialize {
     use core::mem::replace;
     use xsd_parser_types::quick_xml::{
@@ -409,6 +459,11 @@ pub mod quick_xml_deserialize {
             Option<<super::RestrictedStringType as WithDeserializer>::Deserializer>,
             Option<<super::RestrictedStringType as WithDeserializer>::Deserializer>,
         ),
+        NonceType(
+            Option<super::NonceType>,
+            Option<<super::NonceType as WithDeserializer>::Deserializer>,
+            Option<<super::NonceType as WithDeserializer>::Deserializer>,
+        ),
         Done__(super::RootTypeContent),
         Unknown__,
     }
@@ -442,6 +497,13 @@ pub mod quick_xml_deserialize {
                     let output =
                         <super::RestrictedStringType as WithDeserializer>::init(helper, event)?;
                     return self.handle_restricted_string(helper, Default::default(), None, output);
+                }
+                if matches!(
+                    helper.resolve_local_name(x.name(), &super::NS_TNS),
+                    Some(b"NonceType")
+                ) {
+                    let output = <super::NonceType as WithDeserializer>::init(helper, event)?;
+                    return self.handle_nonce_type(helper, Default::default(), None, output);
                 }
             }
             *self.state__ = RootTypeContentDeserializerState::Init__;
@@ -481,6 +543,15 @@ pub mod quick_xml_deserialize {
                         helper.finish_element("RestrictedString", values)?,
                     ))
                 }
+                S::NonceType(mut values, None, deserializer) => {
+                    if let Some(deserializer) = deserializer {
+                        let value = deserializer.finish(helper)?;
+                        Self::store_nonce_type(&mut values, value)?;
+                    }
+                    Ok(super::RootTypeContent::NonceType(
+                        helper.finish_element("NonceType", values)?,
+                    ))
+                }
                 S::Done__(data) => Ok(data),
                 _ => unreachable!(),
             }
@@ -516,6 +587,18 @@ pub mod quick_xml_deserialize {
             if values.is_some() {
                 Err(ErrorKind::DuplicateElement(RawByteStr::from_slice(
                     b"RestrictedString",
+                )))?;
+            }
+            *values = Some(value);
+            Ok(())
+        }
+        fn store_nonce_type(
+            values: &mut Option<super::NonceType>,
+            value: super::NonceType,
+        ) -> Result<(), Error> {
+            if values.is_some() {
+                Err(ErrorKind::DuplicateElement(RawByteStr::from_slice(
+                    b"NonceType",
                 )))?;
             }
             *values = Some(value);
@@ -623,6 +706,40 @@ pub mod quick_xml_deserialize {
                 }
             }
         }
+        fn handle_nonce_type<'de>(
+            &mut self,
+            helper: &mut DeserializeHelper,
+            mut values: Option<super::NonceType>,
+            fallback: Option<<super::NonceType as WithDeserializer>::Deserializer>,
+            output: DeserializerOutput<'de, super::NonceType>,
+        ) -> Result<ElementHandlerOutput<'de>, Error> {
+            use RootTypeContentDeserializerState as S;
+            let DeserializerOutput {
+                artifact,
+                event,
+                allow_any,
+            } = output;
+            if artifact.is_none() {
+                return Ok(ElementHandlerOutput::return_to_root(event, allow_any));
+            }
+            if let Some(deserializer) = fallback {
+                let data = deserializer.finish(helper)?;
+                Self::store_nonce_type(&mut values, data)?;
+            }
+            match artifact {
+                DeserializerArtifact::None => unreachable!(),
+                DeserializerArtifact::Data(data) => {
+                    Self::store_nonce_type(&mut values, data)?;
+                    let data = Self::finish_state(helper, S::NonceType(values, None, None))?;
+                    *self.state__ = S::Done__(data);
+                    Ok(ElementHandlerOutput::break_(event, allow_any))
+                }
+                DeserializerArtifact::Deserializer(deserializer) => {
+                    *self.state__ = S::NonceType(values, None, Some(deserializer));
+                    Ok(ElementHandlerOutput::break_(event, allow_any))
+                }
+            }
+        }
     }
     impl<'de> Deserializer<'de, super::RootTypeContent> for RootTypeContentDeserializer {
         fn init(
@@ -675,6 +792,15 @@ pub mod quick_xml_deserialize {
                     (S::RestrictedString(values, fallback, Some(deserializer)), event) => {
                         let output = deserializer.next(helper, event)?;
                         match self.handle_restricted_string(helper, values, fallback, output)? {
+                            ElementHandlerOutput::Break { event, allow_any } => {
+                                break (event, allow_any)
+                            }
+                            ElementHandlerOutput::Continue { event, .. } => event,
+                        }
+                    }
+                    (S::NonceType(values, fallback, Some(deserializer)), event) => {
+                        let output = deserializer.next(helper, event)?;
+                        match self.handle_nonce_type(helper, values, fallback, output)? {
                             ElementHandlerOutput::Break { event, allow_any } => {
                                 break (event, allow_any)
                             }
@@ -741,6 +867,23 @@ pub mod quick_xml_deserialize {
                             false,
                         )?;
                         match self.handle_restricted_string(helper, values, fallback, output)? {
+                            ElementHandlerOutput::Break { event, allow_any } => {
+                                break (event, allow_any)
+                            }
+                            ElementHandlerOutput::Continue { event, .. } => event,
+                        }
+                    }
+                    (
+                        S::NonceType(values, fallback, None),
+                        event @ (Event::Start(_) | Event::Empty(_)),
+                    ) => {
+                        let output = helper.init_start_tag_deserializer(
+                            event,
+                            Some(&super::NS_TNS),
+                            b"NonceType",
+                            false,
+                        )?;
+                        match self.handle_nonce_type(helper, values, fallback, output)? {
                             ElementHandlerOutput::Break { event, allow_any } => {
                                 break (event, allow_any)
                             }
@@ -846,6 +989,7 @@ pub mod quick_xml_serialize {
         NegativeDecimal(<super::NegativeDecimalType as WithSerializer>::Serializer<'ser>),
         PositiveDecimal(<super::PositiveDecimalType as WithSerializer>::Serializer<'ser>),
         RestrictedString(<super::RestrictedStringType as WithSerializer>::Serializer<'ser>),
+        NonceType(<super::NonceType as WithSerializer>::Serializer<'ser>),
         Done__,
         Phantom__(&'ser ()),
     }
@@ -872,6 +1016,11 @@ pub mod quick_xml_serialize {
                                 WithSerializer::serializer(x, Some("RestrictedString"), false)?,
                             )
                         }
+                        super::RootTypeContent::NonceType(x) => {
+                            *self.state = RootTypeContentSerializerState::NonceType(
+                                WithSerializer::serializer(x, Some("NonceType"), false)?,
+                            )
+                        }
                     },
                     RootTypeContentSerializerState::NegativeDecimal(x) => {
                         match x.next(helper).transpose()? {
@@ -886,6 +1035,12 @@ pub mod quick_xml_serialize {
                         }
                     }
                     RootTypeContentSerializerState::RestrictedString(x) => {
+                        match x.next(helper).transpose()? {
+                            Some(event) => return Ok(Some(event)),
+                            None => *self.state = RootTypeContentSerializerState::Done__,
+                        }
+                    }
+                    RootTypeContentSerializerState::NonceType(x) => {
                         match x.next(helper).transpose()? {
                             Some(event) => return Ok(Some(event)),
                             None => *self.state = RootTypeContentSerializerState::Done__,
