@@ -22,6 +22,8 @@ macro_rules! check_obj {
         assert!(matches!(it.next(), Some(RootTypeContent::NegativeDecimal(x)) if x.eq(&-1234.56_f64)));
         assert!(matches!(it.next(), Some(RootTypeContent::PositiveDecimal(x)) if x.eq(&0.01_f64)));
         assert!(matches!(it.next(), Some(RootTypeContent::RestrictedString(x)) if *x == "Abcdef"));
+        assert!(matches!(it.next(), Some(RootTypeContent::HexType(x)) if x.as_str() == "a1f3e8b2c9d4f6e7a2b3c4d5e6f7a8b9"));
+        assert!(matches!(it.next(), Some(RootTypeContent::Base64Type(x)) if x.as_str() == "QUJDREVGR0hJSktMTU5PUA=="));
         assert!(it.next().is_none());
     }};
 }
@@ -29,6 +31,7 @@ macro_rules! check_obj {
 #[cfg(not(feature = "update-expectations"))]
 macro_rules! test_obj {
     ($module:ident) => {{
+        use ::xsd_parser_types::xml::{Base64String, HexString};
         use $module::{RootType, RootTypeContent};
 
         RootType {
@@ -36,6 +39,16 @@ macro_rules! test_obj {
                 RootTypeContent::NegativeDecimal((-1234.56_f64).try_into().unwrap()),
                 RootTypeContent::PositiveDecimal(0.011_f64.try_into().unwrap()),
                 RootTypeContent::RestrictedString(String::from("Abcdef").try_into().unwrap()),
+                RootTypeContent::HexType(
+                    HexString::from(String::from("a1f3e8b2c9d4f6e7a2b3c4d5e6f7a8b9"))
+                        .try_into()
+                        .unwrap(),
+                ),
+                RootTypeContent::Base64Type(
+                    Base64String::from(String::from("QUJDREVGR0hJSktMTU5PUA=="))
+                        .try_into()
+                        .unwrap(),
+                ),
             ],
         }
     }};

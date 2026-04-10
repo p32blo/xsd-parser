@@ -420,6 +420,54 @@ impl<'a> Interpreter<'a> {
         )
     }
 
+    /// Add a type definition for `xs:hexBinary` that uses the
+    /// `xsd_parser_types::xml::HexString` type.
+    pub fn with_hex_binary_type(self) -> Result<Self, Error> {
+        self.with_hex_binary_type_from("::xsd_parser_types::xml::HexString")
+    }
+
+    /// Add a type definition for `xs:hexBinary` that uses the type defined at the passed `path`.
+    pub fn with_hex_binary_type_from(self, path: &str) -> Result<Self, Error> {
+        let xs = self
+            .state
+            .schemas()
+            .resolve_namespace(&Some(Namespace::XS))
+            .ok_or_else(|| Error::UnknownNamespace(Namespace::XS.clone()))?;
+
+        let name = path.rsplit_once("::").map_or(path, |(_, name)| name);
+
+        self.with_type(
+            TypeIdent::type_("hexBinary").with_ns(xs),
+            CustomMeta::new(name)
+                .include_from(path)
+                .with_namespace(xs),
+        )
+    }
+
+    /// Add a type definition for `xs:base64Binary` that uses the
+    /// `xsd_parser_types::xml::Base64String` type.
+    pub fn with_base64_binary_type(self) -> Result<Self, Error> {
+        self.with_base64_binary_type_from("::xsd_parser_types::xml::Base64String")
+    }
+
+    /// Add a type definition for `xs:base64Binary` that uses the type defined at the passed `path`.
+    pub fn with_base64_binary_type_from(self, path: &str) -> Result<Self, Error> {
+        let xs = self
+            .state
+            .schemas()
+            .resolve_namespace(&Some(Namespace::XS))
+            .ok_or_else(|| Error::UnknownNamespace(Namespace::XS.clone()))?;
+
+        let name = path.rsplit_once("::").map_or(path, |(_, name)| name);
+
+        self.with_type(
+            TypeIdent::type_("base64Binary").with_ns(xs),
+            CustomMeta::new(name)
+                .include_from(path)
+                .with_namespace(xs),
+        )
+    }
+
     /// Add type definitions for numeric XML types (like `xs:int`) that
     /// uses `num::BigInt` and `num::BigUint` instead of build-in integer types.
     ///

@@ -8,16 +8,13 @@ members = [
     "xsd-parser-types",
     "xsd-parser",
 ]
-default-members = [
-    "xsd-parser-types",
-    "xsd-parser",
-]
+default-members = ["xsd-parser-types", "xsd-parser"]
 
 [workspace.package]
 license = "MIT"
 edition = "2021"
-authors = [ "Bergmann89 <info@bergmann89.de>", ]
-keywords = [ "xsd", "xml", "generator", "quick-xml", "serde-xml-rs" ]
+authors = ["Bergmann89 <info@bergmann89.de>"]
+keywords = ["xsd", "xml", "generator", "quick-xml", "serde-xml-rs"]
 repository = "https://github.com/Bergmann89/xsd-parser"
 homepage = "https://github.com/Bergmann89/xsd-parser"
 
@@ -31,6 +28,7 @@ clap = "4.5"
 comfy-table = "7.2"
 encoding_rs = "0.8"
 futures = "0.3"
+hex = "0.4"
 indexmap = "2.9"
 Inflector = "0.11"
 libc = "0.2"
@@ -59,15 +57,15 @@ xsd-parser = { version = "1.5.2", path = "./xsd-parser" }
 xsd-parser-types = { version = "0.2.1", path = "./xsd-parser-types" }
 
 [workspace.lints.rust]
-future_incompatible = { level = "warn", priority = -1}
+future_incompatible = { level = "warn", priority = -1 }
 incomplete_features = "allow"
-missing_debug_implementations = { level = "warn", priority = -1}
-missing_docs  = { level = "warn", priority = -1}
-nonstandard_style = { level = "warn", priority = -1}
-rust_2018_idioms = { level = "warn", priority = -1}
-rust_2021_compatibility = { level = "warn", priority = -1}
-unreachable_pub  = { level = "warn", priority = -1}
-unused = { level = "warn", priority = -1}
+missing_debug_implementations = { level = "warn", priority = -1 }
+missing_docs = { level = "warn", priority = -1 }
+nonstandard_style = { level = "warn", priority = -1 }
+rust_2018_idioms = { level = "warn", priority = -1 }
+rust_2021_compatibility = { level = "warn", priority = -1 }
+unreachable_pub = { level = "warn", priority = -1 }
+unused = { level = "warn", priority = -1 }
 
 [workspace.lints.clippy]
 cast_possible_truncation = "warn"
@@ -79,7 +77,7 @@ missing_errors_doc = "allow"
 missing_panics_doc = "allow"
 module_name_repetitions = "allow"
 no_effect_underscore_binding = "allow"
-pedantic = { level = "warn", priority = -1}
+pedantic = { level = "warn", priority = -1 }
 result_large_err = "allow"
 similar_names = "allow"
 single_match_else = "allow"

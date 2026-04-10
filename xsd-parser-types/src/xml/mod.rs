@@ -4,7 +4,11 @@
 
 mod any_simple_type;
 mod attributes;
+mod base64_binary;
+mod base64_string;
 mod element;
+mod hex_binary;
+mod hex_string;
 mod mixed;
 mod namespace_scope;
 mod namespaces;
@@ -17,7 +21,11 @@ pub use self::any_simple_type::{AnySimpleType, Base64Binary, Decimal, Integer, U
 pub use self::attributes::{
     AnyAttributes, Attributes, Key as AttributeKey, Value as AttributeValue,
 };
+pub use self::base64_binary::Base64Binary as Base64BinaryBytes;
+pub use self::base64_string::Base64String;
 pub use self::element::{AnyElement, AnyElements, Element, Elements};
+pub use self::hex_binary::HexBinary;
+pub use self::hex_string::HexString;
 pub use self::mixed::{Mixed, MixedDeserializer, MixedSerializer};
 pub use self::namespace_scope::NamespaceScope;
 pub use self::namespaces::{
